@@ -20,6 +20,10 @@
       padding: 1rem;
     }
 
+    h1 {
+      margin-top: 0;
+    }
+
     @media print {
       @page {
         margin: 0.2in;
@@ -264,14 +268,15 @@
 
       switch (settings.overflow) {
         case "squish":
-          monthgrid.classList.add("squish");
-          break;
-        case "six-always":
-          monthgrid.classList.add("six");
+          monthgrid.classList.add(monthgrid.querySelector(".row6") ? "squish" : "five");
           break;
         case "six-ifneeded":
           monthgrid.classList.add(monthgrid.querySelector(".row6") ? "six" : "five");
           break;
+        case "six-always":
+          monthgrid.classList.add("six");
+          break;
+
         case "move":
           monthgrid.classList.add("five");
           let toMove;
@@ -378,6 +383,7 @@
 
 <body>
   <form onsubmit="return false;">
+    <h1>Printable calendar</h1>
     <fieldset>
       <legend>Date</legend>
       <p>
@@ -466,9 +472,10 @@
     <fieldset>
       <legend>Finish</legend>
       <p><input type="button" id="print" value="Print" onclick="window.print()"> <i>(This form will be hidden.)</i></p>
-      In the browser print dialog, remember to uncheck "Print headers and footers", and consider "Print backgrounds".
+      Remember to uncheck "headers and footers" for a better look, and consider "Print backgrounds".
     </fieldset>
     <p>A service of the <a href="https://highlysuspect.agency">Highly Suspect Agency</a>.</p>
+    <p>Source on <a href="https://github.com/quat1024/calendar">github</a>.</p>
   </form>
   <div id="calendar">Please enable inline Javascript to use the calendar</div>
 </body>
