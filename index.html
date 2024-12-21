@@ -98,6 +98,11 @@
       overflow: hidden;
     }
 
+    .day {
+      padding: 0.2rem;
+      border: 2px solid lightgray;
+    }
+
     .monthgrid {
       /* position in the outer grid */
       grid-area: monthgrid;
@@ -108,21 +113,30 @@
       gap: 2px;
       grid-template-columns: repeat(7, 1fr);
       grid-template-columns: subgrid;
+    }
+
+    .monthgrid.five {
+      grid-template-rows: repeat(5, 1fr);
+    }
+
+    .monthgrid.six {
+      grid-template-rows: repeat(6, 1fr);
+    }
+
+    .monthgrid.squish {
       grid-template-rows: repeat(4, 2fr) repeat(2, 1fr);
     }
 
-    .day {
-      padding: 0.2rem;
-      border: 2px solid lightgray;
-    }
-
-    .row5 {
+    .squish .row5 {
       grid-row: 5/7;
     }
-    .row5.day23:has(~.row6.day30), .row5.day24:has(~.row6.day31) {
+
+    .squish .row5.day23:has(~.row6.day30),
+    .row5.day24:has(~.row6.day31) {
       grid-row: 5/6;
     }
-    .row6 {
+
+    .squish .row6 {
       grid-row: 6/7;
     }
 
@@ -185,7 +199,8 @@
       showYear: false,
       duplex: false,
       monthType: "long",
-      weekType: "short"
+      weekType: "short",
+      overflow: "squish"
     };
 
     function getMonthNames() {
@@ -239,15 +254,36 @@
         if ((year < 1582) || (year == 1582 && month < OCTOBER) || (year == 1582 && month == OCTOBER && day <= 4)) weekday = (weekday + 3) % 7;
         else if (year == 1582 && month == OCTOBER && day > 4 && day < 15) continue;
 
-        if(weekday == SUNDAY && day != 1) rownum++;
-        
+        if (weekday == SUNDAY && day != 1) rownum++;
+
         const daydiv = document.createElement("div");
         daydiv.textContent = day;
         daydiv.classList.add("day", "day" + day, "row" + rownum, weekShortNames[weekday]);
         monthgrid.appendChild(daydiv);
       }
-      div.appendChild(monthgrid);
 
+      switch (settings.overflow) {
+        case "squish":
+          monthgrid.classList.add("squish");
+          break;
+        case "six-always":
+          monthgrid.classList.add("six");
+          break;
+        case "six-ifneeded":
+          monthgrid.classList.add(monthgrid.querySelector(".row6") ? "six" : "five");
+          break;
+        case "move":
+          monthgrid.classList.add("five");
+          let toMove;
+          while (toMove = monthgrid.querySelector(".row6:last-child")) {
+            toMove.classList.remove("row6");
+            toMove.classList.add("row1");
+            monthgrid.insertBefore(toMove, monthgrid.querySelector(".row1"));
+          }
+          break;
+      }
+
+      div.appendChild(monthgrid);
       return div;
     }
 
@@ -316,18 +352,24 @@
       settings.weekType = findRadioButton("weekselect");
     }
 
+    function loadOverflow() {
+      settings.overflow = findRadioButton("overflowselect");
+    }
+
     document.addEventListener("DOMContentLoaded", _ => {
       loadYear();
       loadShowYear();
       loadPageLayout();
       loadMonthType();
       loadWeekType();
+      loadOverflow();
 
       document.getElementById("year").addEventListener("change", () => { loadYear(); updateCalendar(); });
       document.getElementById("show-year").addEventListener("change", () => { loadShowYear(); updateCalendar(); });
       onRadioButtonChange("duplexselect", () => { loadPageLayout(); updateCalendar(); });
       onRadioButtonChange("monthselect", () => { loadMonthType(); updateCalendar(); });
       onRadioButtonChange("weekselect", () => { loadWeekType(); updateCalendar(); });
+      onRadioButtonChange("overflowselect", () => { loadOverflow(); updateCalendar(); });
 
       updateCalendar();
     });
@@ -356,11 +398,11 @@
       </p>
       <p>
         <input type="radio" name="duplexselect" id="duplex-horiz" value="duplex-horiz" />
-        <label for="duplex-horiz">Two months, side by side <i>(looks ok-ish in landscape)</i></label>
+        <label for="duplex-horiz">Two months, side by side <i>(landscape)</i></label>
       </p>
       <p>
         <input type="radio" name="duplexselect" id="duplex-vert" value="duplex-vert" />
-        <label for="duplex-vert">Two months, vertically stacked <i>(looks good in portrait)</i></label>
+        <label for="duplex-vert">Two months, vertically stacked <i>(portrait)</i></label>
       </p>
     </fieldset>
 
@@ -401,11 +443,31 @@
     </fieldset>
 
     <fieldset>
+      <legend>Overflow</legend>
+      <p>When the last days of the month fall on a Sunday or Monday:</p>
+      <p>
+        <input type="radio" name="overflowselect" id="ovf-squish" value="squish" checked />
+        <label for="ovf-squish">Squish them against the previous week</label>
+      </p>
+      <p>
+        <input type="radio" name="overflowselect" id="ovf-six-needed" value="six-needed" />
+        <label for="ovf-six-needed">Make six rows if needed</label>
+      </p>
+      <p>
+        <input type="radio" name="overflowselect" id="ovf-six-always" value="six-always" />
+        <label for="ovf-six-always">Make six rows all the time</label>
+      </p>
+      <p>
+        <input type="radio" name="overflowselect" id="ovf-move" value="move" />
+        <label for="ovf-move">Move them to the first row</label>
+      </p>
+    </fieldset>
+
+    <fieldset>
       <legend>Finish</legend>
       <p><input type="button" id="print" value="Print" onclick="window.print()"> <i>(This form will be hidden.)</i></p>
       In the browser print dialog, remember to uncheck "Print headers and footers", and consider "Print backgrounds".
     </fieldset>
-    <p>Requires a browser that supports <code>:has</code>.</p>
     <p>A service of the <a href="https://highlysuspect.agency">Highly Suspect Agency</a>.</p>
   </form>
   <div id="calendar">Please enable inline Javascript to use the calendar</div>
