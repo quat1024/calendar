@@ -74,6 +74,7 @@
 
     .month {
       display: grid;
+      grid-template-rows: [monthheader] min-content [weekheader] min-content [monthgrid] 1fr;
       grid-template-columns: repeat(7, 1fr);
 
       width: 100%;
@@ -81,32 +82,48 @@
       gap: 2px;
     }
 
-    .month:has(> .monthheader),
-    .month:has(> .weekheader) {
-      grid-template-rows: min-content;
-    }
-
-    .month:has(> .monthheader):has(> .weekheader) {
-      grid-template-rows: min-content min-content;
-    }
-
     .monthheader {
-      grid-column: 1 / 8;
+      grid-area: monthheader;
+      grid-column: 1/8;
       background-color: lightgray;
       font-size: 200%;
       text-align: center;
     }
 
     .weekheader {
+      grid-area: weekheader;
       text-align: center;
       background-color: darkgray;
       color: white;
       overflow: hidden;
     }
 
+    .monthgrid {
+      /* position in the outer grid */
+      grid-area: monthgrid;
+      grid-column: 1/8;
+
+      /* inner grid */
+      display: grid;
+      gap: 2px;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: subgrid;
+      grid-template-rows: repeat(4, 2fr) repeat(2, 1fr);
+    }
+
     .day {
       padding: 0.2rem;
       border: 2px solid lightgray;
+    }
+
+    .row5 {
+      grid-row: 5/7;
+    }
+    .row5.day23:has(~.row6.day30), .row5.day24:has(~.row6.day31) {
+      grid-row: 5/6;
+    }
+    .row6 {
+      grid-row: 6/7;
     }
 
     .Sun {
@@ -191,7 +208,7 @@
       if (settings.monthType != "none") {
         let header = document.createElement("div");
         header.textContent = getMonthNames()[month];
-        if(settings.showYear) header.textContent += " " + year;
+        if (settings.showYear) header.textContent += " " + year;
         header.classList.add("monthheader", monthShortNames[month]);
         div.appendChild(header);
       }
@@ -205,6 +222,10 @@
         }
       }
 
+      const monthgrid = document.createElement("div");
+      monthgrid.classList.add("monthgrid");
+
+      let rownum = 1;
       let date = new Date(year, month); //first of the month
       while (date.getUTCMonth() == month) {
         let day = date.getUTCDate();
@@ -218,11 +239,14 @@
         if ((year < 1582) || (year == 1582 && month < OCTOBER) || (year == 1582 && month == OCTOBER && day <= 4)) weekday = (weekday + 3) % 7;
         else if (year == 1582 && month == OCTOBER && day > 4 && day < 15) continue;
 
+        if(weekday == SUNDAY && day != 1) rownum++;
+        
         const daydiv = document.createElement("div");
         daydiv.textContent = day;
-        daydiv.classList.add("day", weekShortNames[weekday]);
-        div.appendChild(daydiv);
+        daydiv.classList.add("day", "day" + day, "row" + rownum, weekShortNames[weekday]);
+        monthgrid.appendChild(daydiv);
       }
+      div.appendChild(monthgrid);
 
       return div;
     }
@@ -263,14 +287,14 @@
 
     function loadYear() {
       const input = document.getElementById("year").value;
-      if(!input) {
+      if (!input) {
         //Already set to currentOrNextYear above, copy it into the input.
         input = settings.year;
       } else {
         settings.year = input;
       }
     }
-    
+
     function loadShowYear() {
       settings.showYear = document.getElementById("show-year").checked;
     }
@@ -381,7 +405,7 @@
       <p><input type="button" id="print" value="Print" onclick="window.print()"> <i>(This form will be hidden.)</i></p>
       In the browser print dialog, remember to uncheck "Print headers and footers", and consider "Print backgrounds".
     </fieldset>
-
+    <p>Requires a browser that supports <code>:has</code>.</p>
     <p>A service of the <a href="https://highlysuspect.agency">Highly Suspect Agency</a>.</p>
   </form>
   <div id="calendar">Please enable inline Javascript to use the calendar</div>
