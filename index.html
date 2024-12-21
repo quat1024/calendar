@@ -276,7 +276,6 @@
         case "six-always":
           monthgrid.classList.add("six");
           break;
-
         case "move":
           monthgrid.classList.add("five");
           let toMove;
@@ -330,7 +329,7 @@
       const input = document.getElementById("year").value;
       if (!input) {
         //Already set to currentOrNextYear above, copy it into the input.
-        input = settings.year;
+        document.getElementById("year").value = settings.year;
       } else {
         settings.year = input;
       }
