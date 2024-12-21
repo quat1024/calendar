@@ -7,12 +7,13 @@
       box-sizing: border-box;
       font-family: sans-serif;
     }
-    
-    html, body {
+
+    html,
+    body {
       margin: 0;
       padding: 0;
     }
-    
+
     form {
       padding: 1rem;
     }
@@ -25,6 +26,25 @@
       form {
         display: none;
       }
+
+      .centerOnPage {
+        height: 100%;
+      }
+    }
+
+    @media screen and (min-width: 60rem) {
+      body {
+        display: flex;
+        flex-direction: row;
+      }
+
+      form {
+        width: 25%;
+      }
+
+      #calendar {
+        flex-grow: 1;
+      }
     }
 
     .centerOnPage {
@@ -34,7 +54,9 @@
       align-items: center;
       justify-content: center;
       width: 100%;
-      height: 100%;
+      
+      /* For some reason 100% makes it get dummy tall when the form is side-by-side with the calendar */
+      height: 100vh;
 
       flex-direction: column;
       gap: 1rem;
@@ -52,22 +74,23 @@
       height: 100%;
       gap: 2px;
     }
-    
-    .month:has(> .monthheader), .month:has(> .weekheader) {
+
+    .month:has(> .monthheader),
+    .month:has(> .weekheader) {
       grid-template-rows: min-content;
     }
 
     .month:has(> .monthheader):has(> .weekheader) {
       grid-template-rows: min-content min-content;
     }
-    
+
     .monthheader {
       grid-column: 1 / 8;
       background-color: lightgray;
       font-size: 200%;
       text-align: center;
     }
-    
+
     .weekheader {
       text-align: center;
       background-color: darkgray;
@@ -124,14 +147,34 @@
       "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
     ];
     const weekShortNames = weekNames.map(x => x.slice(0, 3));
+    const weekTinyNames = ["Su", "M", "T", "W", "Th", "F", "Sa"]
     const SUNDAY = 0, MONDAY = 1, TUESDAY = 2, WEDNESDAY = 3, THURSDAY = 4, FRIDAY = 5, SATURDAY = 6;
 
+    //if you're here in December you're probably looking for next year's calendar
+    function currentOrNextYear() {
+      const date = new Date();
+      date.setMonth(date.getMonth() + 1);
+      return date.getFullYear();
+    }
+
     const settings = {
-      currentYear: 2025,
+      year: currentOrNextYear(),
       duplex: false,
       monthType: "long",
       weekType: "short"
     };
+    
+    function getMonthNames() {
+      return settings.monthType == "long" ? monthNames : monthShortNames;
+    }
+    
+    function getWeekNames() {
+      switch(settings.weekType) {
+        case "long": return weekNames;
+        case "short": return weekShortNames;
+        case "tiny": return weekTinyNames;
+      }
+    }
 
     //"i" ranges from 0 to 11
     function makeMonth(year, month) {
@@ -140,15 +183,15 @@
 
       if (settings.monthType != "none") {
         let header = document.createElement("div");
-        header.textContent = settings.monthType == "short" ? monthShortNames[month] : monthNames[month];
+        header.textContent = getMonthNames()[month];
         header.classList.add("monthheader", monthShortNames[month]);
         div.appendChild(header);
       }
-      
-      if(settings.weekType != "none") {
-        for(let weekday = 0; weekday < 7; weekday++) {
+
+      if (settings.weekType != "none") {
+        for (let weekday = 0; weekday < 7; weekday++) {
           let wk = document.createElement("div");
-          wk.textContent = settings.weekType == "short" ? weekShortNames[weekday] : weekNames[weekday];
+          wk.textContent = getWeekNames()[weekday];
           wk.classList.add("weekheader", weekShortNames[weekday]); //will place it correctly on the calendar
           div.appendChild(wk);
         }
@@ -184,88 +227,145 @@
         for (let i = 0; i < 12; i += 2) {
           const centerOnPage = document.createElement("div");
           centerOnPage.classList.add("centerOnPage");
-          centerOnPage.appendChild(makeMonth(settings.currentYear, i));
-          centerOnPage.appendChild(makeMonth(settings.currentYear, i + 1));
+          centerOnPage.appendChild(makeMonth(settings.year, i));
+          centerOnPage.appendChild(makeMonth(settings.year, i + 1));
           calendar.appendChild(centerOnPage);
         }
       } else {
         for (let i = 0; i < 12; i++) {
           const centerOnPage = document.createElement("div");
           centerOnPage.classList.add("centerOnPage");
-          centerOnPage.appendChild(makeMonth(settings.currentYear, i));
+          centerOnPage.appendChild(makeMonth(settings.year, i));
 
           calendar.appendChild(centerOnPage);
         }
       }
     }
 
+    function findRadioButton(name) {
+      for (let e of document.getElementsByName(name)) {
+        if (e.checked) return e.value;
+      }
+      return undefined;
+    }
+
+    function onRadioButtonChange(name, f) {
+      document.getElementsByName(name).forEach(e => e.addEventListener("change", f));
+    }
+
+    function loadYear() {
+      settings.year = document.getElementById("year").value;
+      if (!settings.year) {
+        settings.year = currentOrNextYear();
+        document.getElementById("year").value = settings.year;
+      }
+    }
+
+    function loadPageLayout() {
+      const r = findRadioButton("duplexselect");
+      if (r) {
+        const calendar = document.getElementById("calendar");
+        settings.duplex = r != "single";
+        if (r == "duplex-horiz") calendar.classList.add("horiz");
+        else calendar.classList.remove("horiz");
+      }
+    }
+
+    function loadMonthType() {
+      const r = findRadioButton("monthselect");
+      if (r) settings.monthType = r;
+    }
+
+    function loadWeekType() {
+      const r = findRadioButton("weekselect");
+      if (r) settings.weekType = r;
+    }
+
     document.addEventListener("DOMContentLoaded", _ => {
+      loadYear();
+      loadPageLayout();
+      loadMonthType();
+      loadWeekType();
+
+      onRadioButtonChange("duplexselect", _ => { loadPageLayout(); updateCalendar(); });
+      onRadioButtonChange("monthselect", _ => { loadMonthType(); updateCalendar(); });
+      onRadioButtonChange("weekselect", _ => { loadWeekType(); updateCalendar(); });
+      document.getElementById("year").addEventListener("change", _ => { loadYear(); updateCalendar(); });
+
       updateCalendar();
-
-      document.getElementsByName("duplexselect").forEach(e => e.addEventListener("change", _ => {
-        settings.duplex = e.id != "single";
-        if (e.id.includes("horiz")) document.getElementById("calendar").classList.add("horiz");
-        else document.getElementById("calendar").classList.remove("horiz");
-
-        updateCalendar();
-      }));
-
-      document.getElementsByName("monthselect").forEach(e => e.addEventListener("change", _ => {
-        settings.monthType = e.value;
-        updateCalendar();
-      }));
-
-      document.getElementsByName("weekselect").forEach(e => e.addEventListener("change", _ => {
-        settings.weekType = e.value;
-        updateCalendar();
-      }));
-
-      document.getElementById("year").addEventListener("change", e => {
-        settings.currentYear = e.target.value;
-        updateCalendar();
-      })
     });
   </script>
 </head>
 
 <body>
-  <form>
+  <form onsubmit="return false;">
     <fieldset>
       <legend>Date</legend>
-      <p><input type="number" id="year" value="2025" /><label for="year">Year</label></p>
+      <p>
+        <label for="year">Year</label>
+        <input type="number" id="year" />
+      </p>
     </fieldset>
 
     <fieldset>
       <legend>Page layout</legend>
-      <p><input type="radio" name="duplexselect" id="single" checked /><label for="single">One month</label></p>
-      <p><input type="radio" name="duplexselect" id="duplex-horiz" /><label for="duplex-horiz">Two months, side by
-          side (looks ok-ish in landscape)</label></p>
-      <p><input type="radio" name="duplexselect" id="duplex-vert" /><label for="duplex-vert">Two months, vertically
-          stacked (looks good in portrait)</label></p>
+      <p>
+        <input type="radio" name="duplexselect" id="single" value="single" checked />
+        <label for="single">One month per page</label>
+      </p>
+      <p>
+        <input type="radio" name="duplexselect" id="duplex-horiz" value="duplex-horiz" />
+        <label for="duplex-horiz">Two months, side by side <i>(looks ok-ish in landscape)</i></label>
+      </p>
+      <p>
+        <input type="radio" name="duplexselect" id="duplex-vert" value="duplex-vert" />
+        <label for="duplex-vert">Two months, vertically stacked <i>(looks good in portrait)</i></label>
+      </p>
     </fieldset>
 
     <fieldset>
-      <legend>Headers</legend>
-      <p><input type="radio" name="monthselect" id="month-long" value="long" checked /><label for="month-long">Full
-          months</label></p>
-      <p><input type="radio" name="monthselect" id="month-short" value="short" /><label for="month-short">Short
-          months</label></p>
-      <p><input type="radio" name="monthselect" id="month-none" value="none" /><label for="month-none">No month
-          names</label></p>
+      <legend>Month headers</legend>
+      <p>
+        <input type="radio" name="monthselect" id="month-long" value="long" checked />
+        <label for="month-long">Full</label>
+      </p>
+      <p>
+        <input type="radio" name="monthselect" id="month-short" value="short" />
+        <label for="month-short">Short</label>
+      </p>
+      <p>
+        <input type="radio" name="monthselect" id="month-none" value="none" />
+        <label for="month-none">None</label>
+      </p>
+    </fieldset>
 
-      <p><input type="radio" name="weekselect" id="week-long" value="long" /><label for="week-long">Full
-          weekdays</label></p>
-      <p><input type="radio" name="weekselect" id="week-short" value="short" checked /><label for="week-short">Short
-          weekdays</label></p>
-      <p><input type="radio" name="weekselect" id="week-none" value="none" /><label for="week-none">No weekdays</label>
+    <fieldset>
+      <legend>Weekday headers</legend>
+      <p>
+        <input type="radio" name="weekselect" id="week-long" value="long" />
+        <label for="week-long">Full</label>
+      </p>
+      <p>
+        <input type="radio" name="weekselect" id="week-short" value="short" checked />
+        <label for="week-short">Short</label>
+      </p>
+      <p>
+        <input type="radio" name="weekselect" id="week-tiny" value="tiny" />
+        <label for="week-tiny">Tiny</label>
+      </p>
+      <p>
+        <input type="radio" name="weekselect" id="week-none" value="none" />
+        <label for="week-none">None</label>
       </p>
     </fieldset>
 
     <fieldset>
       <legend>Finish</legend>
-      <p><input type="button" id="print" value="Print" onclick="window.print()"> <i>This form will be hidden</i></p>
-      In the browser print dialog, remember to uncheck "Print headers and footers", and check "Print backgrounds"
+      <p><input type="button" id="print" value="Print" onclick="window.print()"> <i>(This form will be hidden.)</i></p>
+      In the browser print dialog, remember to uncheck "Print headers and footers", and consider "Print backgrounds".
     </fieldset>
+    
+    <p>A service of the <a href="https://highlysuspect.agency">Highly Suspect Agency</a>.</p>
   </form>
   <div id="calendar">Please enable inline Javascript to use the calendar</div>
 </body>
