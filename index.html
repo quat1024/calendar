@@ -159,31 +159,31 @@
       grid-row: 6/7;
     }
 
-    .Sun {
+    .col0 {
       grid-column: 1/2;
     }
 
-    .Mon {
+    .col1 {
       grid-column: 2/3;
     }
 
-    .Tue {
+    .col2 {
       grid-column: 3/4;
     }
 
-    .Wed {
+    .col3 {
       grid-column: 4/5;
     }
 
-    .Thu {
+    .col4 {
       grid-column: 5/6;
     }
 
-    .Fri {
+    .col5 {
       grid-column: 6/7;
     }
 
-    .Sat {
+    .col6 {
       grid-column: 7/8;
     }
   </style>
@@ -219,7 +219,8 @@
       duplex: false,
       monthType: "long",
       weekType: "short",
-      overflow: "squish"
+      overflow: "squish",
+      weekLabelCycle: 0
     };
 
     function getMonthNames() {
@@ -250,8 +251,8 @@
       if (settings.weekType != "none") {
         for (let weekday = 0; weekday < 7; weekday++) {
           let wk = document.createElement("div");
-          wk.textContent = getWeekNames()[weekday];
-          wk.classList.add("weekheader", weekShortNames[weekday]); //will place it correctly on the calendar
+          wk.textContent = getWeekNames()[(weekday + settings.weekLabelCycle) % 7];
+          wk.classList.add("weekheader", "col" + weekday);
           div.appendChild(wk);
         }
       }
@@ -263,21 +264,21 @@
       let date = new Date(year, month); //first of the month
       while (date.getMonth() == month) {
         let day = date.getDate();
-        let weekday = date.getDay();
+        let column = (date.getDay() + 7 - settings.weekLabelCycle) % 7; //skull emoji
 
         date.setDate(date.getDate() + 1); // "i++"
 
         //GREGORIAN REFORM (FUNNY!!!)
         //Tbf it doesn't actually handle the pre-Gregorian leap day rule so if you go back in time
         //further than this it'll still drift. im just doing this for the meme's
-        if ((year < 1582) || (year == 1582 && month < OCTOBER) || (year == 1582 && month == OCTOBER && day <= 4)) weekday = (weekday + 3) % 7;
+        if ((year < 1582) || (year == 1582 && month < OCTOBER) || (year == 1582 && month == OCTOBER && day <= 4)) column = (column + 3) % 7;
         else if (year == 1582 && month == OCTOBER && day > 4 && day < 15) continue;
 
-        if (weekday == SUNDAY && day != 1) rownum++;
+        if (column == 0 && day != 1) rownum++;
 
         const daydiv = document.createElement("div");
         daydiv.textContent = day;
-        daydiv.classList.add("day", "day" + day, "row" + rownum, weekShortNames[weekday]);
+        daydiv.classList.add("day", "day" + day, "row" + rownum, "col" + column);
         monthgrid.appendChild(daydiv);
       }
 
@@ -285,7 +286,7 @@
         case "squish":
           monthgrid.classList.add(monthgrid.querySelector(".row6") ? "squish" : "five");
           break;
-        case "six-ifneeded":
+        case "six-needed":
           monthgrid.classList.add(monthgrid.querySelector(".row6") ? "six" : "five");
           break;
         case "six-always":
@@ -353,6 +354,10 @@
     function loadShowYear() {
       settings.showYear = document.getElementById("show-year").checked;
     }
+    
+    function loadWeekLabelCycle() {
+      settings.weekLabelCycle = parseInt(document.getElementById("week-label-cycle").value);
+    }
 
     function loadPageLayout() {
       const r = findRadioButton("duplexselect");
@@ -378,6 +383,7 @@
     document.addEventListener("DOMContentLoaded", _ => {
       loadYear();
       loadShowYear();
+      loadWeekLabelCycle();
       loadPageLayout();
       loadMonthType();
       loadWeekType();
@@ -385,6 +391,7 @@
 
       document.getElementById("year").addEventListener("change", () => { loadYear(); updateCalendar(); });
       document.getElementById("show-year").addEventListener("change", () => { loadShowYear(); updateCalendar(); });
+      document.getElementById("week-label-cycle").addEventListener("change", () => { loadWeekLabelCycle(); updateCalendar(); });
       onRadioButtonChange("duplexselect", () => { loadPageLayout(); updateCalendar(); });
       onRadioButtonChange("monthselect", () => { loadMonthType(); updateCalendar(); });
       onRadioButtonChange("weekselect", () => { loadWeekType(); updateCalendar(); });
@@ -402,12 +409,24 @@
     <fieldset>
       <legend>Date</legend>
       <p>
-        <label for="year">Year</label>
+        <label for="year">Year:</label>
         <input type="number" id="year" />
       </p>
       <p>
         <input type="checkbox" id="show-year" />
         <label for="show-year">Show year</label>
+      </p>
+      <p>
+        <label for="week-label-cycle">Week starts on:</label>
+        <select id="week-label-cycle">
+          <option value="0" selected>Sunday</option>
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+        </select>
       </p>
     </fieldset>
 
@@ -497,7 +516,7 @@
     <p>A service of the <a href="https://highlysuspect.agency">Highly Suspect Agency</a>.</p>
     <p>Source on <a href="https://github.com/quat1024/calendar">github</a>, although it's just a <a href="https://html.energy">handwritten HTML file</a> so the source is also in your browser.</p>
   </form>
-  <div id="calendar">Please enable inline Javascript to use the calendar</div>
+  <div id="calendar">Please enable inline Javascript to use the calendar. Or if Javascript is enabled and you're still seeing this, yeah that's a bug.</div>
 </body>
 
 </html>

@@ -8,6 +8,5 @@ Before printing, you can select the year, configure the page layout (1 or 2 mont
 
 ## Todo
 
-* Allow the week to start on a different day.
 * Shade the weekends.
 * Add moon phases.
