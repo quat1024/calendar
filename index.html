@@ -261,11 +261,11 @@
 
       let rownum = 1;
       let date = new Date(year, month); //first of the month
-      while (date.getUTCMonth() == month) {
-        let day = date.getUTCDate();
-        let weekday = date.getUTCDay();
+      while (date.getMonth() == month) {
+        let day = date.getDate();
+        let weekday = date.getDay();
 
-        date.setUTCDate(date.getUTCDate() + 1); // "i++"
+        date.setDate(date.getDate() + 1); // "i++"
 
         //GREGORIAN REFORM (FUNNY!!!)
         //Tbf it doesn't actually handle the pre-Gregorian leap day rule so if you go back in time
@@ -398,6 +398,7 @@
 <body>
   <form onsubmit="return false;">
     <h1>Printable calendar</h1>
+    <p>Now works in all timezones!!!! (I love Javascript date)</p>
     <fieldset>
       <legend>Date</legend>
       <p>
