@@ -6,6 +6,8 @@
     :root {
       box-sizing: border-box;
       font-family: sans-serif;
+      text-size-adjust: none;
+      /* idk why pagebreaking is messed up on android chrome, maybe this will fix it */
     }
 
     html,
@@ -23,11 +25,15 @@
         margin: 0.2in;
       }
 
+      body {
+        display: block;
+      }
+
       form {
         display: none;
       }
 
-      .centerOnPage {
+      .page {
         height: 100%;
       }
     }
@@ -47,14 +53,14 @@
       }
     }
 
-    .centerOnPage {
+    .page {
       break-after: always;
 
       display: flex;
       align-items: center;
       justify-content: center;
       width: 100%;
-      
+
       /* For some reason 100% makes it get dummy tall when the form is side-by-side with the calendar */
       height: 100vh;
 
@@ -62,7 +68,7 @@
       gap: 1rem;
     }
 
-    #calendar.horiz .centerOnPage {
+    #calendar.horiz .page {
       flex-direction: row;
     }
 
@@ -159,17 +165,18 @@
 
     const settings = {
       year: currentOrNextYear(),
+      showYear: false,
       duplex: false,
       monthType: "long",
       weekType: "short"
     };
-    
+
     function getMonthNames() {
       return settings.monthType == "long" ? monthNames : monthShortNames;
     }
-    
+
     function getWeekNames() {
-      switch(settings.weekType) {
+      switch (settings.weekType) {
         case "long": return weekNames;
         case "short": return weekShortNames;
         case "tiny": return weekTinyNames;
@@ -184,6 +191,7 @@
       if (settings.monthType != "none") {
         let header = document.createElement("div");
         header.textContent = getMonthNames()[month];
+        if(settings.showYear) header.textContent += " " + year;
         header.classList.add("monthheader", monthShortNames[month]);
         div.appendChild(header);
       }
@@ -225,19 +233,19 @@
 
       if (settings.duplex) {
         for (let i = 0; i < 12; i += 2) {
-          const centerOnPage = document.createElement("div");
-          centerOnPage.classList.add("centerOnPage");
-          centerOnPage.appendChild(makeMonth(settings.year, i));
-          centerOnPage.appendChild(makeMonth(settings.year, i + 1));
-          calendar.appendChild(centerOnPage);
+          const page = document.createElement("div");
+          page.classList.add("page");
+          page.appendChild(makeMonth(settings.year, i));
+          page.appendChild(makeMonth(settings.year, i + 1));
+          calendar.appendChild(page);
         }
       } else {
         for (let i = 0; i < 12; i++) {
-          const centerOnPage = document.createElement("div");
-          centerOnPage.classList.add("centerOnPage");
-          centerOnPage.appendChild(makeMonth(settings.year, i));
+          const page = document.createElement("div");
+          page.classList.add("page");
+          page.appendChild(makeMonth(settings.year, i));
 
-          calendar.appendChild(centerOnPage);
+          calendar.appendChild(page);
         }
       }
     }
@@ -246,7 +254,7 @@
       for (let e of document.getElementsByName(name)) {
         if (e.checked) return e.value;
       }
-      return undefined;
+      return document.getElementsByName(name)[0].value; //That's weird, none of them are checked
     }
 
     function onRadioButtonChange(name, f) {
@@ -254,43 +262,48 @@
     }
 
     function loadYear() {
-      settings.year = document.getElementById("year").value;
-      if (!settings.year) {
-        settings.year = currentOrNextYear();
-        document.getElementById("year").value = settings.year;
+      const input = document.getElementById("year").value;
+      if(!input) {
+        //Already set to currentOrNextYear above, copy it into the input.
+        input = settings.year;
+      } else {
+        settings.year = input;
       }
+    }
+    
+    function loadShowYear() {
+      settings.showYear = document.getElementById("show-year").checked;
     }
 
     function loadPageLayout() {
       const r = findRadioButton("duplexselect");
-      if (r) {
-        const calendar = document.getElementById("calendar");
-        settings.duplex = r != "single";
-        if (r == "duplex-horiz") calendar.classList.add("horiz");
-        else calendar.classList.remove("horiz");
-      }
+      const calendar = document.getElementById("calendar");
+      settings.duplex = r != "single";
+      if (r == "duplex-horiz") calendar.classList.add("horiz");
+      else calendar.classList.remove("horiz");
     }
 
     function loadMonthType() {
-      const r = findRadioButton("monthselect");
-      if (r) settings.monthType = r;
+      settings.monthType = findRadioButton("monthselect");
+      document.getElementById("show-year").disabled = settings.monthType == "none";
     }
 
     function loadWeekType() {
-      const r = findRadioButton("weekselect");
-      if (r) settings.weekType = r;
+      settings.weekType = findRadioButton("weekselect");
     }
 
     document.addEventListener("DOMContentLoaded", _ => {
       loadYear();
+      loadShowYear();
       loadPageLayout();
       loadMonthType();
       loadWeekType();
 
-      onRadioButtonChange("duplexselect", _ => { loadPageLayout(); updateCalendar(); });
-      onRadioButtonChange("monthselect", _ => { loadMonthType(); updateCalendar(); });
-      onRadioButtonChange("weekselect", _ => { loadWeekType(); updateCalendar(); });
-      document.getElementById("year").addEventListener("change", _ => { loadYear(); updateCalendar(); });
+      document.getElementById("year").addEventListener("change", () => { loadYear(); updateCalendar(); });
+      document.getElementById("show-year").addEventListener("change", () => { loadShowYear(); updateCalendar(); });
+      onRadioButtonChange("duplexselect", () => { loadPageLayout(); updateCalendar(); });
+      onRadioButtonChange("monthselect", () => { loadMonthType(); updateCalendar(); });
+      onRadioButtonChange("weekselect", () => { loadWeekType(); updateCalendar(); });
 
       updateCalendar();
     });
@@ -304,6 +317,10 @@
       <p>
         <label for="year">Year</label>
         <input type="number" id="year" />
+      </p>
+      <p>
+        <input type="checkbox" id="show-year" />
+        <label for="show-year">Show year</label>
       </p>
     </fieldset>
 
@@ -364,7 +381,7 @@
       <p><input type="button" id="print" value="Print" onclick="window.print()"> <i>(This form will be hidden.)</i></p>
       In the browser print dialog, remember to uncheck "Print headers and footers", and consider "Print backgrounds".
     </fieldset>
-    
+
     <p>A service of the <a href="https://highlysuspect.agency">Highly Suspect Agency</a>.</p>
   </form>
   <div id="calendar">Please enable inline Javascript to use the calendar</div>
