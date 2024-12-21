@@ -26,9 +26,17 @@
     form {
       padding: 1rem;
     }
+    
+    button {
+      font-size: 200%;
+    }
 
     h1 {
       margin-top: 0;
+    }
+    
+    li {
+      margin-top: 0.5rem;
     }
 
     @media print {
@@ -477,11 +485,16 @@
 
     <fieldset>
       <legend>Finish</legend>
-      <p><input type="button" id="print" value="Print" onclick="window.print()"> <i>(This form will be hidden.)</i></p>
-      Remember to uncheck "headers and footers" for a better look, and consider "Print backgrounds".
+      <p><button id="print" onclick="window.print()">Print!</button></p>
+      <p><i>(This form will not appear in the printed copy.)</i></p>
+      <ul>
+        <li>Remember to select "portrait" or "landscape".</li>
+        <li>Consider enabling "Background graphics".</li>
+        <li>You might want to adjust the page margins.</li>
+      </ul>
     </fieldset>
     <p>A service of the <a href="https://highlysuspect.agency">Highly Suspect Agency</a>.</p>
-    <p>Source on <a href="https://github.com/quat1024/calendar">github</a>, although it's just a <a href="https://html.energy">hand-authored HTML file</a> so the source is also in your browser.</p>
+    <p>Source on <a href="https://github.com/quat1024/calendar">github</a>, although it's just a <a href="https://html.energy">handwritten HTML file</a> so the source is also in your browser.</p>
   </form>
   <div id="calendar">Please enable inline Javascript to use the calendar</div>
 </body>
